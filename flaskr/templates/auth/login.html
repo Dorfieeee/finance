@@ -1,0 +1,23 @@
+{% extends "/layout.html" %}
+
+{% block title %}
+    Log-in page
+{% endblock title %}    
+
+{% block main %}
+    <form autocomplete="off" class="m-auto p-2" action="{{ url_for('auth.login') }}" method="post" style="max-width: 560px;">
+        <h3><span>Login form</span></h3>
+        <div class="group-control">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" class="form-control mb-3">
+        </div>
+        
+        <div class="group-control">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" class="form-control mb-3">
+        </div>
+        
+        <button type="submit" class="btn btn-warning">Login</button>
+        <p class="d-inline float-right mt-1">Don't have account yet? <a href="{{ url_for('auth.register') }}">Register here</a></p>
+    </form>     
+{% endblock main %}

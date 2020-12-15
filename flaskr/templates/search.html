@@ -1,0 +1,112 @@
+{% extends "./layout.html" %}
+
+{% block title %}Search{% endblock title %}
+
+{% block section %}Search{% endblock %}
+
+{% block main %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <!-- Form -->
+            <form action="{{ url_for('dashboard.quote') }}" method="GET" class="form-inline m-auto flex-nowrap"
+                style="max-width: 560px;" onsubmit="renderQuoteCard(event)">
+                <input class="form-control mr-2 flex-grow-1" type="text" name="symbol" id="search">
+                <button type="submit" class="btn btn-md btn-outline-warning"><i
+                        class="fas fa-search-dollar"></i></button>
+            </form>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col m-auto" style="max-width: 560px;">
+                <div class="tradingview-widget-container">
+                    <span id="trade-button"></span>
+                    <div id="tradingview_fca67"></div>
+                    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+                </div>
+            </div>
+        </div>
+        <!-- Quote card -->
+        <section>
+            <div class="row mt-3">
+                <div class="col">
+                    <div id="quote" class="card m-auto" style="max-width: 560px;">
+
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    const quoteTemplate = (quote) => {
+        return ` 
+            <div class="row no-gutters">
+                <div class="col-4">
+                    <img src="${quote.image}" class="card-img" alt="${quote.name}" style="max-width: 150px;object-fit:cover; width: 100%; height: 100%;">
+                </div>
+                <div class="col-8">
+                    <div class="card-body">
+                    <h5 class="card-title">${quote.name}</h5>
+                    <p class="card-text">
+                        <small class="text-warning">${quote.symbol}</small>
+                    </p>
+                    <p class="card-text d-flex justify-content-between">Price $${quote.price}<button class="btn btn-sm btn-outline-success" data-action="buy" data-price=${quote.price} data-symbol=${quote.symbol} onclick='confirm(event)'>Buy</button></p>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    const chartTemplate = (quote) => {
+        new TradingView.MediumWidget({
+                            "symbols": [
+                                [
+                                   quote.name,
+                                   quote.symbol
+                                ]
+                            ],
+                            "chartOnly": false,
+                            "width": "100%",
+                            "height": "360px",
+                            "locale": "en",
+                            "colorTheme": "dark",
+                            "gridLineColor": "#2a2e39",
+                            "trendLineColor": "#1976d2",
+                            "fontColor": "#787b86",
+                            "underLineColor": "rgba(55, 166, 239, 0.15)",
+                            "isTransparent": true,
+                            "autosize": true,
+                            "container_id": "tradingview_fca67"
+                        });
+    }
+
+    const renderQuoteCard = async (event) => {
+        event.preventDefault();
+        const card = document.getElementById('quote');
+        const chart = document.getElementById('searchChart');
+        const symbol = event.target.querySelector('input[name=symbol]').value;
+
+        if (!symbol) {
+            card.innerHTML = `<h3 class="text-center">Enter stock ticker symbol.</h3>`;
+            return;
+        }
+
+        const response = await fetch('/quote?symbol=' + symbol);
+        try {
+            const quote = await response.json();
+            if (quote.hasOwnProperty('error')) {
+                throw new Error(quote.error);
+            }
+            card.innerHTML = quoteTemplate(quote);
+            chartTemplate(quote);
+
+        } catch (error) {
+            card.innerHTML = `<h3 class="text-center">${error}</h3>`;
+        }
+    }
+</script>
+
+{% endblock main %}

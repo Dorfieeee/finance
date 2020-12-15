@@ -1,0 +1,465 @@
+{% extends "./layout.html" %}
+
+{% block section %}Dashboard{% endblock %}
+
+{% block main %}
+
+<div class="spinner">
+    <div class="book">
+        <div class="inner">
+          <div class="left"></div>
+          <div class="middle"></div>
+          <div class="right"></div>
+        </div>
+        <ul>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+          <li></li>
+        </ul>
+      </div>
+</div>
+
+<div class="main hide"> <!-- MAIN START -->
+
+<!-- Account cards -->
+<section aria-label="account-details">
+    <div class="container-fluid">
+        <!-- Progress bar -->
+        <div id="progress" class="progress mb-2" style="height: 2px;">
+            <div class="progress-bar bg-dark" role="progressbar" style="width: 100%;" aria-valuenow="100"
+                aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="row no-gutters mb-3">
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div id="liveResult" class="d-flex justify-content-between">
+                            <div class="card-text">
+                                <div>Live result</div>
+                                <span style="display: block;">$0</span>
+                            </div>
+                            <div class="fa-lg pl-2 acc-card-icon">
+                                <i class="fas fa-balance-scale"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div class="card-text">
+                                <div>Free funds</div>
+                                <div id="freeFunds"><span>$0</span></div>
+                            </div>
+                            <div class="fa-lg pl-2 acc-card-icon">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div class="card-text">
+                                <div>Blocked funds</div>
+                                <div id="blockedFunds"><span>$0</span></div>
+                            </div>
+                            <div class="fa-lg pl-2 acc-card-icon">
+                                <i class="fab fa-creative-commons-nc"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card m-1">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div class="card-text">
+                                <div>Account value</div>
+                                <div id="accountValue"><span>$0</span></div>
+                            </div>
+                            <div class="fa-lg pl-2 acc-card-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+</section>
+
+<!-- Tables -->
+<section>
+<div class="container-fluid">
+
+    <div class="row">
+        
+        <div class="col">
+            <!-- My stocks table -->
+            <section aria-label="stock-table">
+                <div class="row">
+                    <div class="col">
+                        <h3><span>My stocks</span></h3>
+                        <table id="stock-table" class="table-sm table-hover w-100">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th scope="col">Symbol</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Qty</th>
+                                    <th scope="col">Price(avg)</th>
+                                    <th scope="col">Price(cur)</th>
+                                    <th scope="col">Total</th>
+                                    <th scope="col">Result</th>
+                                    <th scope="col">Action</th>
+                                </tr>
+                            </thead>
+                            <!-- API Call fills body and footer -->
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="col">
+            <!-- Top10 active table -->
+            <section aria-label="top-table">
+                <div class="row">
+                    <div class="col">
+                        <h3><span>Most active stocks</span></h3>
+                        <table id="top-table" class="table-sm table-hover w-100">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th scope="col">Symbol</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Price(cur)</th>
+                                    <th scope="col">Change</th>
+                                    <th scope="col">Action</th>
+                                </tr>
+                            </thead>
+                            <!-- API Call fills body and -->
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+</section>
+
+<!-- News cards -->
+<section>
+    <div class="container-fluid">
+        <div class="row flex-column">
+            <h3 class="col"><span>Latest news</span></h3>
+            <div class="col d-flex flex-wrap" id="news"></div>
+        </div>
+    </div>
+</section>
+</div> <!-- MAIN END -->
+
+
+
+
+<!-- Update data scripts -->
+<script>
+    
+    let myStocks = {};
+    let updates = {};
+    let topStocks = {};
+    let page = 0;
+    let step = 9;
+
+        
+    const numberTemplate = (value = "") => {
+        let cls = value > 0 ? 'text-success' : value < 0 ? 'text-danger' : '';
+        return `
+        <span class="pr-1">$</span><span class=${cls}>${value}</span>
+        `
+    }
+
+    const updateAccBalance = (data) => {
+        // ### LIVE RESULT CARD
+        const liveResult = document.getElementById('liveResult')
+        // # Icon
+        let liveResultIcon = 'fa-balance-scale';
+        if (data.liveResult > 0) {
+            liveResultIcon += '-left';
+        } else {
+            liveResultIcon += '-right';
+        }
+        liveResult.children[1].children[0].classList.add(liveResultIcon);
+        // # Text
+        liveResult.children[0].children[1].innerHTML = numberTemplate(data.liveResult);
+
+
+        // ### OTHER CARDS
+        document.getElementById('accountValue').innerHTML = numberTemplate(data.balance)
+        document.getElementById('freeFunds').innerHTML = numberTemplate(data.freeFunds)
+        document.getElementById('blockedFunds').innerHTML = numberTemplate(data.blockedFunds)
+    }
+
+    const renderMyStockTable = (data=myStocks, start=page*step, end=step*(page+1)) => {
+        const table = document.getElementById('stock-table');
+        const body = document.createElement('tbody');
+        const footer = document.createElement('tfoot');
+
+        let stocks = [];
+        let liveResult;
+
+        if (!data.stocks) {
+            Object.entries(myStocks).forEach(([key, value]) => stocks.push(value));
+            liveResult = updates.liveResult
+        } else {
+            stocks = [...data.stocks]
+            liveResult = data.account.liveResult;
+        }
+
+        let numPages = Math.ceil(stocks.length / step);
+
+        const rows = stocks.slice(start, end).map(stock => {
+            let caret =
+                `<i class="fas fa-caret-right text-secondary" data-fa-transform="grow-3 left-4"></i>`
+            let symbol = stock.symbol
+
+            if (symbol in myStocks) {
+                if (stock.currentPrice > myStocks[symbol].currentPrice) {
+                    caret =
+                        `<i class="fas fa-caret-up text-success" data-fa-transform="grow-3 left-4"></i>`
+                } else if (stock.currentPrice < myStocks[symbol].currentPrice) {
+                    caret =
+                        `<i class="fas fa-caret-down text-danger" data-fa-transform="grow-3 left-4"></i>`
+                }
+            }
+
+            return `
+                <tr>
+                    <th scope="row">${stock.symbol}</th>
+                    <th>${stock.name}</th>
+                    <th>${stock.qt}</th>
+                    <th>${stock.avgPrice}</th>
+                    <th>
+                        ${caret}
+                        ${stock.currentPrice}
+                    </th>
+                    <th>${stock.total}</th>
+                    <th>${numberTemplate(stock.result)}</th>
+                    <th>
+                        <div class="btn-group" role="group" aria-label="Action buttons">
+                            <button class="btn btn-sm btn-outline-success" data-action="buy"  data-price=${stock.currentPrice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Buy</button>
+                            <button class="btn btn-sm btn-outline-danger" data-action="sell"  data-price=${stock.currentPrice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Sell</button>
+                            <button class="btn btn-sm btn-outline-warning" data-action="close"  data-price=${stock.currentPrice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Close</button>                            
+                        </div>
+                    </th>
+                </tr>
+            `
+        });
+
+        const summary = `
+            <tr>
+                <th colspan=6>Total result</th>
+                <th>${numberTemplate(liveResult)}</th>
+                <th>
+                    <div class="btn-group" role="group" aria-label="Action buttons">
+                        <button class="btn btn-sm btn-outline-light" id="prevBtn" onclick=prevPage();>Prev</button>
+                        <button class="btn btn-sm btn-outline-light" id="nextBtn" onclick=nextPage();>Next</button>
+                    </div>
+                    <small>${page + 1} / ${numPages}</small>
+                </th>
+            </tr>
+        `
+
+        tableChildren = Array.from(table.children).reduce((acc, val) => {
+            acc[val.tagName] = val;
+            return acc;
+        }, {})
+
+        if ('TBODY' in tableChildren && 'TFOOT' in tableChildren) {
+            tableChildren['TBODY'].innerHTML = rows.join('');
+            tableChildren['TFOOT'].innerHTML = summary;
+        } else {
+            body.innerHTML = rows.join('')
+            footer.innerHTML = summary
+
+            table.append(body);
+            table.append(footer);
+        }
+    }
+
+    const renderTopStockTable = (data) => {
+        const table = document.getElementById('top-table');
+        const body = document.createElement('tbody');
+        const footer = document.createElement('tfoot');
+
+        const rows = data.mostActive.map(stock => {
+            let caret =
+                `<i class="fas fa-caret-right text-secondary" data-fa-transform="grow-3 left-4"></i>`
+            let symbol = stock.symbol
+
+            if (stock.change > 0) {
+                caret =
+                    `<i class="fas fa-caret-up text-success" data-fa-transform="grow-3 left-4"></i>`
+            } else if (stock.change < 0) {
+                caret =
+                    `<i class="fas fa-caret-down text-danger" data-fa-transform="grow-3 left-4"></i>`
+            }
+
+            return `
+                <tr>
+                    <th scope="row">${stock['symbol']}</th>
+                    <th>${stock['name']}</th>
+                    <th>${stock['price']}</th>
+                    <th>
+                        ${caret}
+                        ${stock['change']}
+                    </th>
+                    <th>
+                        <button class="btn btn-sm btn-outline-success" data-action="buy" data-symbol=${stock.symbol} data-price=${stock.price} data-qty=${1} onclick='confirm(event)'>Buy</button>
+                    </th>
+                </tr>
+            `
+        });
+
+        tableChildren = Array.from(table.children).reduce((acc, val) => {
+            acc[val.tagName] = val;
+            return acc;
+        }, {})
+
+        if ('TBODY' in tableChildren) {
+            tableChildren['TBODY'].innerHTML = rows.join('');
+        } else {
+            body.innerHTML = rows.join('')
+            table.append(body);
+        }
+
+    }
+
+    const renderNewsCards = (data) => {
+        const root = document.querySelector('#news');
+        if (!data) {
+            root.innerHTML = '<h3>No news available</h3>';
+            return;
+        }
+        const newsCardTemplate = (data) => {
+            let text = data.summary.length > 65 ? data.summary.slice(0, 63) + '...' : data.summary;
+            let title = data.headline.length > 30 ? data.headline.slice(0, 27) + '...' : data.headline;
+            return `
+                    <div class="card news">
+                        <div class="card-img-top">
+                            <img src="${data.image}" alt="${title}">
+                        </div>    
+                        <div style="padding: .25rem .5rem; color: var(--custom-secondary); line-height: 1.2;">${data.related}</div>      
+                        <div class="card-body">
+                            <h5 class="card-title">${title}</h5>
+                            <p class="card-text">${text}</p>
+                        </div>
+                </div>`
+        }
+
+        const newsCards = data.map(n => newsCardTemplate(n)).join('');
+        root.innerHTML = newsCards;
+    }
+
+    const nextPage = () => {
+        if (Object.keys(myStocks).length / step > page + 1) {
+            page++;
+            renderMyStockTable();
+        }
+    }
+
+    const prevPage = () => {
+        if (page > 0) {
+            page--;
+            renderMyStockTable();
+        }
+    }
+
+
+    let progressInterval, updateInterval;
+    const interval = 250000;
+    const margin = 100 / (interval / 100);
+    const prBar = document.querySelector('#progress .progress-bar');
+
+    const startProgress = () => {
+        let width = prBar.style.width.slice(0, -1)
+        if (width > 0) {
+            width = `${width - margin}%`;
+            prBar.style.width = width;
+            prBar.setAttribute('aria-valuenow', width);
+        }
+    }
+
+    const resetProgress = () => {
+        prBar.style.width = '100%';
+        prBar.setAttribute('aria-valuenow', 100);
+    }
+
+    const update = () => {
+        fetch('/update')
+            .then(res => res.json())
+            .then(data => {
+                // stop and reset progress bar
+                clearInterval(progressInterval)
+                resetProgress()
+
+                // compare data and render tables
+                updateAccBalance(data.account)
+                renderMyStockTable(data)
+                renderTopStockTable(data)
+                renderNewsCards(data.news)
+
+                // Show content, hide spinner
+                document.querySelector('.main').classList.remove('hide');
+                document.querySelector('.spinner').classList.add('hide');
+
+                // populate updates
+                Object.entries(data.account).forEach(([key, value]) => updates[key] = value);
+                // populate myStocks
+                myStocks = data.stocks.reduce((acc, val) => {
+                    acc[val.symbol] = {
+                        ...val
+                    };
+                    return acc;
+                }, {})
+                // populate topStocks
+                topStocks = data.mostActive.reduce((acc, val) => {
+                    acc[val.symbol] = {
+                        ...val
+                    };
+                    return acc;
+                }, {})
+
+                // init progress bar
+                progressInterval = setInterval(startProgress, 100)
+
+            });
+    }
+
+    // Initialize dashboard data
+    update();
+    // Initialize interval for updates
+    updateInterval = setInterval(update, interval);
+
+
+</script>
+
+{% endblock main %}
+

@@ -1,0 +1,54 @@
+{% extends "./layout.html" %}
+
+{% block main %}
+<div class="container">
+
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+      "symbols": [
+        {
+          "proName": "FOREXCOM:SPXUSD",
+          "title": "S&P 500"
+        },
+        {
+          "proName": "FOREXCOM:NSXUSD",
+          "title": "Nasdaq 100"
+        },
+        {
+          "proName": "FX_IDC:EURUSD",
+          "title": "EUR/USD"
+        },
+        {
+          "proName": "BITSTAMP:BTCUSD",
+          "title": "BTC/USD"
+        },
+        {
+          "proName": "BITSTAMP:ETHUSD",
+          "title": "ETH/USD"
+        }
+      ],
+      "showSymbolLogo": true,
+      "colorTheme": "dark",
+      "isTransparent": true,
+      "displayMode": "adaptive",
+      "locale": "en"
+    }
+      </script>
+    </div>
+    <!-- TradingView Widget END -->
+
+    <div class="jumbotron bg-dark">
+        <h1 class="display-4">Hello!</h1>
+        <p class="lead">Lorem ipsum dolor sit amet consectetur, adipisicing elit. In accusamus dignissimos delectus minus, architecto at, fugit eaque quas reiciendis nesciunt veritatis harum ut consequuntur eos, repellat quaerat qui amet! Voluptatum?</p>
+        <hr class="my-4 bg-light">
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Aliquam corrupti voluptate sapiente, quisquam ipsam dolor.</p>
+        <a class="btn btn-warning btn-lg" href="{{ url_for('auth.register') }}" role="button">Join us!</a>
+      </div>
+
+</div>
+
+
+{% endblock main %}

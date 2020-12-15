@@ -1,0 +1,27 @@
+{% extends "/layout.html" %}
+
+{% block title %}
+    Registration page
+{% endblock title %}    
+
+{% block main %}
+    <form autocomplete="off" class="m-auto p-2" action="{{ url_for('auth.register') }}" method="post" style="max-width: 560px;">
+        <h3><span>Registration form</span></h3>
+        <div class="group-control">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" class="form-control mb-3">
+        </div>
+        
+        <div class="group-control">
+            <label for="password1">Password</label>
+            <input type="password" name="password1" id="password1" class="form-control mb-3">
+        </div>
+
+        <div class="group-control">
+            <label for="password2">Re-type Password</label>
+            <input type="password" name="password2" id="password2" class="form-control mb-3">
+        </div>
+        
+        <button type="submit" class="btn btn-warning">Register</button>
+    </form>    
+{% endblock main %}

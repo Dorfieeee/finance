@@ -1,0 +1,133 @@
+{% extends "./layout.html" %}
+
+{% block title %}History{% endblock title %}
+
+{% block section %}History{% endblock %}
+
+{% block main %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <h3><span>My history of transactions</span></h3>
+            <!-- Table -->
+            <table id="history-table" class="table-sm table-hover w-100">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Type</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Symbol</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Qty</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Total</th>
+                    </tr>
+                </thead>
+                <!-- API Call fills body and footer -->
+            </table>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    let historyList = [];
+    let page = 0;
+    let step = 10;
+
+    const nextPage = () => {
+        if (historyList.length / step > page + 1) {
+            page++;
+            renderHistoryTable();
+        }
+    }
+
+    const prevPage = () => {
+        if (page > 0) {
+            page--;
+            renderHistoryTable();
+        }
+    }
+
+
+    const renderHistoryTable = (data=historyList, start=page*step, end=step*(page+1)) => {
+        const table = document.getElementById('history-table');
+        const body = document.createElement('tbody');
+        const footer = document.createElement('tfoot');
+
+        let numPages = Math.ceil(data.length / step);
+
+        const rows = data.slice(start, end).map(trans => {
+            const type = trans.type === 1 ? ['SELL', 'danger'] : ['BUY', 'success'];
+            const typeHTML = `<span class="badge badge-${type[1]}">${type[0]}</span>`
+
+            const date = new Date(trans.date);
+            const dateTime = date.toLocaleString();
+
+            return `
+                <tr>
+                    <th scope="row">${typeHTML}</th>
+                    <th>${dateTime}</th>
+                    <th>${trans.symbol}</th>
+                    <th>${trans.name}</th>
+                    <th>${trans.qty}</th>
+                    <th>${trans.price}</th>
+                    <th>${trans.total}</th>
+                </tr>
+            `
+        });
+
+        const summary = `
+            <tr>
+                <th colspan=5></th>                    
+                <th><small>${page + 1} / ${numPages}</small></th>
+                <th>
+                    <div class="btn-group" role="group" aria-label="Action buttons">
+                        <button class="btn btn-sm btn-outline-light" id="prevBtn" onclick=prevPage();>Prev</button>
+                        <button class="btn btn-sm btn-outline-light" id="nextBtn" onclick=nextPage();>Next</button>
+                    </div>
+                </th>
+            </tr>
+        `
+
+        tableChildren = Array.from(table.children).reduce((acc, val) => {
+            acc[val.tagName] = val;
+            return acc;
+        }, {})
+
+        if ('TBODY' in tableChildren && 'TFOOT' in tableChildren) {
+            tableChildren['TBODY'].innerHTML = rows.join('');
+            tableChildren['TFOOT'].innerHTML = summary;
+        } else {
+            body.innerHTML = rows.join('')
+            footer.innerHTML = summary
+
+            table.append(body);
+            table.append(footer);
+        }
+    }
+
+    const fetchHistory = async () => {
+        const table = document.getElementById('historyTable');
+        
+        const response = await fetch('/api/history');
+        try {
+            const list = await response.json();
+            if (list.hasOwnProperty('error')) {
+                throw new Error(list.error);
+            }
+            //render table
+            historyList = [...list];
+            renderHistoryTable();
+
+        } catch (error) {
+            //render error
+            return;
+        }
+    }
+
+    fetchHistory();
+
+</script>
+
+{% endblock main %}
