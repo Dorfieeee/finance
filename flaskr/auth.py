@@ -5,9 +5,9 @@ from flask import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from sqlite3 import OperationalError
+from flaskr.db import get_db, query_db
 
-from flaskr.db import get_db
+from psycopg2 import OperationalError
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -18,6 +18,7 @@ def register():
         password1 = request.form['password1']
         password2 = request.form['password2']
         db = get_db()
+        db_cursor = db.cursor()
         error = None
 
         if not username:
@@ -26,27 +27,27 @@ def register():
             error = 'Password is required.'
         elif password1 != password2:
             error = 'Passwords don\'t match.'
-        elif db.execute(
-            'SELECT id FROM user WHERE username = ?', (username,)
-            ).fetchone() is not None:
+        elif query_db(
+            'SELECT id FROM person WHERE username = %s', (username,)
+            , one=True) is not None:
             error = 'User {} is already registered.'.format(username)
 
         if error is None:
             # Insert new user and deposit $10.000 to his account
             try:
-                db.execute(
-                    'INSERT INTO user (username, password) VALUES (?, ?)',
+                db_cursor.execute(
+                    'INSERT INTO person (username, password) VALUES (%s, %s)',
                     (username, generate_password_hash(password1))
                 )
-                user_id = db.execute(
-                    'SELECT id FROM user WHERE username = ?', (username,)
-                ).fetchone()[0]
-                db.execute(
-                    'INSERT INTO deposit (user, value) VALUES (?, ?)',
+                user_id = query_db(
+                    'SELECT id FROM person WHERE username = %s', (username,)
+                , one=True)[0]
+                db_cursor.execute(
+                    'INSERT INTO deposit (person, value) VALUES (%s, %s)',
                     (user_id, 10000.0)
                 )
-                db.execute(
-                    'INSERT INTO account (user, balance) VALUES (?, ?)',
+                db_cursor.execute(
+                    'INSERT INTO account (person, balance) VALUES (%s, %s)',
                     (user_id, 10000.0)
                 )
             except OperationalError:
@@ -55,6 +56,7 @@ def register():
                 return redirect(url_for('auth.register'))
 
             db.commit()
+            db_cursor.close()
 
             return redirect(url_for('auth.login'))
 
@@ -67,20 +69,19 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        db = get_db()
         error = None
-        user = db.execute(
-            'SELECT * FROM user WHERE username = ?', (username,)
-        ).fetchone()
+        user = query_db(
+            'SELECT * FROM person WHERE username = %s', (username,)
+        , one=True)
 
         if user is None:
             error = 'Incorrect username.'
-        elif not check_password_hash(user['password'], password):
+        elif not check_password_hash(user.password, password):
             error = 'Incorrect password.'
 
         if error is None:
             session.clear()
-            session['user_id'] = user['id']
+            session['user_id'] = user.id
             return redirect(url_for('dashboard.dashboard'))
 
         flash(error, category='error')
@@ -94,9 +95,9 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        g.user = get_db().execute(
-            'SELECT * FROM user WHERE id = ?', (user_id,)
-        ).fetchone()
+        g.user = query_db(
+            'SELECT * FROM person WHERE id = %s', (user_id,)
+        , one=True)
 
 @bp.route('/logout')
 def logout():

@@ -1,31 +1,34 @@
-DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS person;
 DROP TABLE IF EXISTS trade;
 DROP TABLE IF EXISTS deposit;
 DROP TABLE IF EXISTS account;
 
-CREATE TABLE user (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE person (
+    id SERIAL,
     username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    PRIMARY KEY(id)
 );
 
 CREATE TABLE account (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL,
     balance FLOAT NOT NULL,
-    user INTEGER NOT NULL,
-    FOREIGN KEY (user) REFERENCES user (id)
+    person INTEGER NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (person) REFERENCES person (id)
 );
 
 CREATE TABLE deposit (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user INTEGER NOT NULL,
+    id SERIAL,
+    person INTEGER NOT NULL,
     value FLOAT NOT NULL,
-    FOREIGN KEY (user) REFERENCES user (id)
+    PRIMARY KEY(id),
+    FOREIGN KEY (person) REFERENCES person (id)
 );
 
 CREATE TABLE trade (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user INTEGER NOT NULL,
+    id SERIAL,
+    person INTEGER NOT NULL,
     price FLOAT NOT NULL,
     qty INTEGER NOT NULL,
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -34,5 +37,6 @@ CREATE TABLE trade (
     -- dir = -1 => BUY 
     -- dir = 1 => SELL
     dir INTEGER NOT NULL,
-    FOREIGN KEY (user) REFERENCES user (id)
+    PRIMARY KEY(id),
+    FOREIGN KEY (person) REFERENCES person (id)
 );

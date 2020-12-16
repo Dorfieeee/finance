@@ -3,7 +3,7 @@ from flask import (
     url_for, jsonify, make_response
 )
 
-from flaskr.db import get_db
+from flaskr.db import get_db, query_db
 from . import auth
 from flaskr.helpers import lookup, lookup_batch, most_active, news, logo
 
@@ -52,7 +52,7 @@ def buy():
 
         if total_price <= account["freeFunds"]:
             buy_stock(g.user, stock, qty)
-            return {'msg': f"Purchase was successfull. You've just bought {qty}x {symbol} for total of ${total_price}."}
+            return {'msg': f"Purchase was successfull. You've just bought {qty}x {symbol} for total of ${round(total_price, 2)}."}
         
         error = "Not sufficient funds for this purchase. You must sell some shares or top up your account."
 
@@ -74,18 +74,17 @@ def sell():
     except TypeError:
         return {'error': "Quantity must be an positive integer."}, 400
 
-    db = get_db()
-    trade = db.execute(
-        'SELECT *, SUM(qty * dir * -1) AS qt FROM trade WHERE user = ? AND symbol = ? GROUP BY symbol', (g.user['id'], symbol)
-    ).fetchone()
+    trade = query_db(
+        'SELECT *, SUM(qty * dir * -1) AS qt FROM trade WHERE person = %s AND symbol = %s GROUP BY trade.id, symbol;', (g.user.id, symbol)
+    , one=True)
 
     if not trade:
         return {'error': 'Trade does not exists'}, 400
     elif qty == 0:
         return {'error': "Quantity must be higher than 0."}, 400
-    elif qty > trade['qt']:
+    elif qty > trade.qt:
         return {'error': "Trying to sell higher quantity then owned."}, 400
-    elif trade['user'] != g.user['id']:
+    elif trade.person != g.user.id:
         return {'error': "Unauthorized access."}, 403
 
     stock = lookup(symbol)
@@ -105,7 +104,6 @@ def quote():
     # if q is None:
     #     # If not found, make search for up to 10 most similar symbols 
     #     s = symbols_search(symbol)
-    #     print(s)
     #     # Batch lookup
     #     q = lookup_batch(s)
     # Return error if no results for both queries
@@ -127,22 +125,22 @@ def account_details(user):
     updated_stocks = None
 
     # Get all user's currently owned stocks
-    owned_stocks = currently_owned_stocks(user['id'])
+    owned_stocks = currently_owned_stocks(user.id)
 
     if owned_stocks is not None:
         # Obtain price sum of owned stocks
-        blocked_funds = sum([s['qt'] * s['avgPrice'] for s in owned_stocks])
+        blocked_funds = sum([s.qt * s.avgprice for s in owned_stocks])
         # Update stocks with current prices
         updated_stocks = update_stocks(owned_stocks)
         # Total result of opened trades
         live_result = sum([s['result'] for s in updated_stocks])
 
-    acc_balance = get_acc_balance(user['id'])
+    acc_balance = get_acc_balance(user.id)
     balance = acc_balance + blocked_funds
     free_funds = balance - blocked_funds
     most_active_list = most_active()
 
-    news_symbols = set([x['symbol'] for x in owned_stocks] + [x['symbol'] for x in most_active_list])
+    news_symbols = set([x.symbol for x in owned_stocks] + [x['symbol'] for x in most_active_list])
     news_list = news(news_symbols)
 
     return {'account': {
@@ -156,16 +154,14 @@ def account_details(user):
             'news': news_list}
 
 def get_acc_balance(user_id):
-    db = get_db()
-    return db.execute(
-        'SELECT balance FROM account WHERE user = ?;', (user_id, )
-    ).fetchone()[0]
+    return query_db(
+        'SELECT balance FROM account WHERE person = %s;', (user_id, )
+    , one=True)[0]
 
 def get_deposits(user_id):
-    db = get_db()
-    return db.execute(
-        'SELECT * FROM deposit WHERE user = ?;', (user_id, )
-    ).fetchall()
+    return query_db(
+        'SELECT * FROM deposit WHERE person = %s;', (user_id, )
+    )
 
 def currently_owned_stocks(user_id):
     ''' 
@@ -173,17 +169,16 @@ def currently_owned_stocks(user_id):
     symbol = stock symbol; qt = quantity per owned stock;
     avgPrice = average buying price per stock; sum = buying price sum per stock
     '''
-    db = get_db()
-    stocks = db.execute(
-        'SELECT symbol, SUM(qty * dir * -1) AS qt, ROUND(AVG(price),2) AS avgPrice FROM trade WHERE user = ? GROUP BY symbol HAVING qt > 0;', (user_id, )
-    ).fetchall()
+    stocks = query_db(
+        'SELECT symbol, SUM(qty * dir * -1) AS qt, ROUND(AVG(price::numeric),2)::float AS avgprice FROM trade WHERE person = %s GROUP BY symbol HAVING SUM(qty * dir * -1) > 0;', (user_id, )
+    )
     if stocks is None:
         return None
-    return [dict(s) for s in stocks]
+    return stocks
 
 def update_stocks(stocks):
     # Reduce to 'symbol' list only
-    symbols = [s['symbol'] for s in stocks]
+    symbols = [s.symbol for s in stocks]
     # API Call for all symbols quotes => [SYMBOL: {name, price, symbol},...]    
     quotes = lookup_batch(symbols)
 
@@ -191,12 +186,12 @@ def update_stocks(stocks):
 
     # Parse stocks, append other details
     for s in stocks:
+        s = s._asdict()
         symbol = s['symbol']
-        s['currentPrice'] = quotes[symbol]['price']
+        s['currentprice'] = quotes[symbol]['price']
         s['name'] = quotes[symbol]['name']
-        #s['change'] = round(s['currentPrice'] - s['avg_price'], 2)
-        s['result'] = round((s['currentPrice'] - s['avgPrice']) * s['qt'], 2)
-        s['total'] = round(s['avgPrice'] * s['qt'], 2)
+        s['result'] = round((s['currentprice'] - s['avgprice']) * s['qt'], 2)
+        s['total'] = round(s['avgprice'] * s['qt'], 2)
 
         updated_stocks.append(s)
 
@@ -204,24 +199,55 @@ def update_stocks(stocks):
 
 def buy_stock(user, stock, qty): 
     db = get_db()
-    db.execute(
-        'INSERT INTO trade (user, price, qty, name, symbol, dir) VALUES (?, ?, ?, ?, ?, ?)',
-        (user['id'], stock["price"], qty, stock["name"], stock["symbol"], -1)
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO trade (person, price, qty, name, symbol, dir) VALUES (%s, %s, %s, %s, %s, %s)',
+        (user.id, stock["price"], qty, stock["name"], stock["symbol"], -1)
     )
-    db.execute(
-        'UPDATE account SET balance = balance - ? WHERE user = ?;', 
-        (stock["price"] * qty, user['id'])
+    db_cursor.execute(
+        'UPDATE account SET balance = balance - %s WHERE person = %s;', 
+        (stock["price"] * qty, user.id)
     )
+    db_cursor.close()
     db.commit()
 
 def sell_stock(user, stock, qty): 
     db = get_db()
-    db.execute(
-        'INSERT INTO trade (user, price, qty, name, symbol, dir) VALUES (?, ?, ?, ?, ?, ?)',
-        (user['id'], stock["price"], qty, stock["name"], stock["symbol"], 1)
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO trade (person, price, qty, name, symbol, dir) VALUES (%s, %s, %s, %s, %s, %s)',
+        (user.id, stock["price"], qty, stock["name"], stock["symbol"], 1)
     )
-    db.execute(
-        'UPDATE account SET balance = balance + ? WHERE user = ?;', 
-        (stock["price"] * qty, user['id'])
+    db_cursor.execute(
+        'UPDATE account SET balance = balance + %s WHERE person = %s;', 
+        (stock["price"] * qty, user.id)
     )
+    db_cursor.close()
     db.commit()
+
+def account_details_only(user):
+    blocked_funds = 0
+    live_result = 0
+    updated_stocks = None
+
+    # Get all user's currently owned stocks
+    owned_stocks = currently_owned_stocks(user.id)
+
+    if owned_stocks is not None:
+        # Obtain price sum of owned stocks
+        blocked_funds = sum([s.qt * s.avgprice for s in owned_stocks])
+        # Update stocks with current prices
+        updated_stocks = update_stocks(owned_stocks)
+        # Total result of opened trades
+        live_result = sum([s['result'] for s in updated_stocks])
+
+    acc_balance = get_acc_balance(user.id)
+    balance = acc_balance + blocked_funds
+    free_funds = balance - blocked_funds
+
+    return {
+            'balance': round(balance, 2),
+            'blockedFunds': round(blocked_funds, 2),
+            'freeFunds': round(free_funds, 2),
+            'liveResult': round(live_result, 2),
+            }

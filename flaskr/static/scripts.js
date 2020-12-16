@@ -18,9 +18,17 @@ const confirm = async (event) => {
     const symbol = target.attributes['data-symbol'].value;
 
     let stockPrice = target.attributes['data-price'].value * 1;
-    // --------- FIX THIS TO BE DYNAMIC ------ make API call only for freeFunds detail
-    //const freeFunds = await fetch()
-    let max = action === 'buy' ? Math.floor(99999 / stockPrice) : qty;
+    
+    let max = qty;
+    if (action === 'buy') {
+        const accountRes = await fetch('/api/account');
+        try {
+            const accountDetails = await accountRes.json();  
+            max = Math.floor(accountDetails.freeFunds / stockPrice);
+        } catch (error) {
+            max = Infinity;
+        }
+    }
 
     // MODAL FORM ELEMENTS
     const form = document.createElement('form');

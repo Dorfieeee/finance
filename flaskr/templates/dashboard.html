@@ -180,6 +180,7 @@
 
 
 <!-- Update data scripts -->
+<script src="https://cdn.jsdelivr.net/gh/jitbit/HtmlSanitizer@master/HtmlSanitizer.js"></script>
 <script>
     
     let myStocks = {};
@@ -241,10 +242,10 @@
             let symbol = stock.symbol
 
             if (symbol in myStocks) {
-                if (stock.currentPrice > myStocks[symbol].currentPrice) {
+                if (stock.currentprice > myStocks[symbol].currentprice) {
                     caret =
                         `<i class="fas fa-caret-up text-success" data-fa-transform="grow-3 left-4"></i>`
-                } else if (stock.currentPrice < myStocks[symbol].currentPrice) {
+                } else if (stock.currentprice < myStocks[symbol].currentprice) {
                     caret =
                         `<i class="fas fa-caret-down text-danger" data-fa-transform="grow-3 left-4"></i>`
                 }
@@ -255,18 +256,18 @@
                     <th scope="row">${stock.symbol}</th>
                     <th>${stock.name}</th>
                     <th>${stock.qt}</th>
-                    <th>${stock.avgPrice}</th>
+                    <th>${stock.avgprice}</th>
                     <th>
                         ${caret}
-                        ${stock.currentPrice}
+                        ${stock.currentprice}
                     </th>
                     <th>${stock.total}</th>
                     <th>${numberTemplate(stock.result)}</th>
                     <th>
                         <div class="btn-group" role="group" aria-label="Action buttons">
-                            <button class="btn btn-sm btn-outline-success" data-action="buy"  data-price=${stock.currentPrice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Buy</button>
-                            <button class="btn btn-sm btn-outline-danger" data-action="sell"  data-price=${stock.currentPrice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Sell</button>
-                            <button class="btn btn-sm btn-outline-warning" data-action="close"  data-price=${stock.currentPrice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Close</button>                            
+                            <button class="btn btn-sm btn-outline-success" data-action="buy"  data-price=${stock.currentprice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Buy</button>
+                            <button class="btn btn-sm btn-outline-danger" data-action="sell"  data-price=${stock.currentprice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Sell</button>
+                            <button class="btn btn-sm btn-outline-warning" data-action="close"  data-price=${stock.currentprice} data-symbol=${stock.symbol} data-qty=${stock.qt} onclick='confirm(event)'>Close</button>                            
                         </div>
                     </th>
                 </tr>
@@ -360,7 +361,9 @@
         }
         const newsCardTemplate = (data) => {
             let text = data.summary.length > 65 ? data.summary.slice(0, 63) + '...' : data.summary;
+            text = HtmlSanitizer.SanitizeHtml(text)
             let title = data.headline.length > 30 ? data.headline.slice(0, 27) + '...' : data.headline;
+            title = HtmlSanitizer.SanitizeHtml(title)
             return `
                     <div class="card news">
                         <div class="card-img-top">
