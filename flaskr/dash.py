@@ -34,6 +34,9 @@ def buy():
     qty = request.args['qty']
     error = None
 
+    if not symbol or not qty:
+        return {'error': "Missing arguments."}, 400
+
     try:
         qty = int(qty)
     except TypeError:
@@ -74,18 +77,23 @@ def sell():
     except TypeError:
         return {'error': "Quantity must be an positive integer."}, 400
 
-    trade = query_db(
-        'SELECT *, SUM(qty * dir * -1) AS qt FROM trade WHERE person = %s AND symbol = %s GROUP BY trade.id, symbol;', (g.user.id, symbol)
+    stock = query_db(
+        'SELECT SUM(a.total) as qty \
+            FROM ( \
+                SELECT SUM(qty * dir * -1) as total \
+                FROM trade \
+                WHERE person = %s AND symbol = %s \
+                GROUP BY trade.id, trade.symbol \
+                ) a;',
+                (g.user.id, symbol)
     , one=True)
 
-    if not trade:
-        return {'error': 'Trade does not exists'}, 400
+    if not stock:
+        return {'error': 'You can\'t sell what you\'ve never bought :].'}, 400
     elif qty == 0:
         return {'error': "Quantity must be higher than 0."}, 400
-    elif qty > trade.qt:
+    elif qty > stock.qty:
         return {'error': "Trying to sell higher quantity then owned."}, 400
-    elif trade.person != g.user.id:
-        return {'error': "Unauthorized access."}, 403
 
     stock = lookup(symbol)
     sell_stock(g.user, stock, qty)
